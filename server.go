@@ -52,12 +52,14 @@ func (s *Server) Start() error {
 			lastConfig := s.lastConfig
 			s.mu.Unlock()
 
-			if len(lastConfig) > 0 {
-				if err := sendConfig(conn, lastConfig); err != nil {
-					slog.Error("Failed to send initial config to client", "addr", conn.RemoteAddr(), "err", err)
-				} else {
-					slog.Info("Sent initial config to client", "addr", conn.RemoteAddr(), "size", len(lastConfig))
-				}
+			if len(lastConfig) == 0 {
+				slog.Warn("No config available for client", "addr", conn.RemoteAddr())
+			}
+
+			if err := sendConfig(conn, lastConfig); err != nil {
+				slog.Error("Failed to send initial config to client", "addr", conn.RemoteAddr(), "err", err)
+			} else {
+				slog.Info("Sent initial config to client", "addr", conn.RemoteAddr(), "size", len(lastConfig))
 			}
 
 			go func(c net.Conn) {

@@ -35,13 +35,12 @@ func GenerateConfig(containers []containuum.Container, routeExtras string) strin
 			sb.WriteString("    upstream ")
 			sb.WriteString(upstream.Name)
 			sb.WriteString(":")
-			sb.WriteString(fmt.Sprintf("%d", upstream.Port))
+			fmt.Fprintf(&sb, "%d", upstream.Port)
 			sb.WriteString("\n")
 		}
 
 		if routeExtras != "" {
-			lines := strings.Split(routeExtras, "\n")
-			for _, line := range lines {
+			for line := range strings.SplitSeq(routeExtras, "\n") {
 				line = strings.TrimSpace(line)
 				if line != "" {
 					sb.WriteString("    ")

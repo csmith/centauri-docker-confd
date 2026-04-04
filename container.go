@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log/slog"
+	"maps"
 	"strconv"
 	"strings"
 
@@ -52,7 +54,10 @@ func parseVhosts(vhost string) (primary string, alternatives []string) {
 func parsePort(container containuum.Container) int {
 	if portStr, ok := container.Labels[labelProxy]; ok {
 		if port, err := strconv.Atoi(portStr); err == nil {
+			slog.Debug("Using proxy port specified by label", "container", container.Name, "port", portStr)
 			return port
+		} else {
+			slog.Warn("Failed to parse port label", "container", container.Name, "port", portStr, "error", err)
 		}
 	}
 
@@ -65,9 +70,11 @@ func parsePort(container containuum.Container) int {
 	}
 
 	if len(unboundPorts) == 1 {
+		slog.Debug("Using single declared port", "container", container.Name, "port", unboundPorts[0].ContainerPort)
 		return int(unboundPorts[0].ContainerPort)
 	}
 
+	slog.Debug("Container has no valid port label, and does not declare a single unbound port", "container", container.Name)
 	return -1
 }
 
@@ -83,6 +90,8 @@ func parseHeaders(container containuum.Container) map[string]string {
 				headerName := strings.TrimSpace(parts[0])
 				headerValue := strings.TrimSpace(parts[1])
 				headers[headerName] = headerValue
+			} else {
+				slog.Warn("Invalid header label, missing ':'", "container", container.Name, "label", key, "value", value)
 			}
 		}
 	}
@@ -90,31 +99,26 @@ func parseHeaders(container containuum.Container) map[string]string {
 	return headers
 }
 
-// shouldProxy checks if a container should be proxied (has vhost and valid port)
-func shouldProxy(container containuum.Container) bool {
-	vhost, ok := container.Labels[labelVhost]
-	if !ok || vhost == "" {
-		return false
-	}
-
-	port := parsePort(container)
-	return port != -1
-}
-
 // groupByHostname groups containers by their primary hostname
 func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 	routes := make(map[string]*RouteInfo)
 
 	for _, container := range containers {
-		if !shouldProxy(container) {
+		vhost, ok := container.Labels[labelVhost]
+		if !ok || vhost == "" {
+			slog.Debug("Not proxying container: missing or empty vhost label", "container", container.Name, "present", ok)
 			continue
 		}
 
-		vhost := container.Labels[labelVhost]
-		primary, alternatives := parseVhosts(vhost)
 		port := parsePort(container)
+		if port == -1 {
+			slog.Debug("Not proxying container: no valid port", "container", container.Name)
+			continue
+		}
 
-		if primary == "" || port == -1 {
+		primary, alternatives := parseVhosts(vhost)
+		if primary == "" {
+			slog.Debug("Not proxying container: no valid vhost", "container", container.Name, "vhost", vhost)
 			continue
 		}
 
@@ -133,9 +137,7 @@ func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 			Port: port,
 		})
 
-		for k, v := range parseHeaders(container) {
-			route.Headers[k] = v
-		}
+		maps.Copy(route.Headers, parseHeaders(container))
 	}
 
 	return routes

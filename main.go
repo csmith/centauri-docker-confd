@@ -33,6 +33,7 @@ func main() {
 
 	var filter = containuum.LabelExists(labelVhost)
 	if *proxytag != "" {
+		slog.Info("Filtering containers by label", "label", "com.chameth.proxytag", "value", *proxytag)
 		filter = containuum.All(
 			containuum.LabelEquals("com.chameth.proxytag", *proxytag),
 			filter,
@@ -47,7 +48,11 @@ func main() {
 
 			config := GenerateConfig(containers, *routeExtras)
 
-			slog.Debug("Generated config", "config", config)
+			if len(config) == 0 {
+				slog.Warn("No suitable containers to proxy")
+			} else {
+				slog.Debug("Generated config", "config", config)
+			}
 
 			server.Broadcast(config)
 		},
