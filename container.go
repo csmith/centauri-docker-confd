@@ -3,6 +3,7 @@ package main
 import (
 	"log/slog"
 	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -10,9 +11,10 @@ import (
 )
 
 const (
-	labelVhost   = "com.chameth.vhost"
-	labelProxy   = "com.chameth.proxy"
-	labelHeaders = "com.chameth.headers"
+	labelHeaders  = "com.chameth.headers"
+	labelProvider = "com.chameth.provider"
+	labelProxy    = "com.chameth.proxy"
+	labelVhost    = "com.chameth.vhost"
 )
 
 // RouteInfo represents the routing configuration for a hostname
@@ -21,6 +23,7 @@ type RouteInfo struct {
 	Alternatives []string
 	Upstreams    []Upstream
 	Headers      map[string]string
+	Provider     string
 }
 
 // Upstream represents a backend server
@@ -128,8 +131,31 @@ func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 				Primary:      primary,
 				Alternatives: alternatives,
 				Headers:      make(map[string]string),
+				Provider:     container.Labels[labelProvider],
 			}
 			routes[primary] = route
+		} else {
+			if !slices.Equal(route.Alternatives, alternatives) {
+				slog.Warn(
+					"Multiple containers declare the same route with different alternate names",
+					"container1_name", route.Upstreams[0].Name,
+					"container2_name", container.Name,
+					"route", primary,
+					"container1_alts", route.Alternatives,
+					"container2_alts", alternatives,
+				)
+			}
+
+			if route.Provider != container.Labels[labelProvider] {
+				slog.Warn(
+					"Multiple containers declare the same route with different providers",
+					"container1_name", route.Upstreams[0].Name,
+					"container2_name", container.Name,
+					"route", primary,
+					"container1_provider", route.Provider,
+					"container2_provider", container.Labels[labelProvider],
+				)
+			}
 		}
 
 		route.Upstreams = append(route.Upstreams, Upstream{

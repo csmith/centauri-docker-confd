@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0 - 2026-06-16
+
+- The `com.chameth.provider` label can now be used to specify the certificate
+  provider for a particular route.
+- A warning is now logged if multiple containers define a route with different
+  alternate names, or different providers.
+
 ## 1.2.0 - 2026-04-22
 
 - Log warning if an empty config is generated

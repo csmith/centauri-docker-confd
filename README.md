@@ -14,6 +14,7 @@ centauri-docker-confd uses the following labels:
 
 - `com.chameth.vhost` - Comma/space-delimited list of hostnames (required)
 - `com.chameth.proxy` - Port number (auto-detected from single exposed port if omitted)
+- `com.chameth.provider` - Certificate provider to use (Centauri will use its default if not specified)
 - `com.chameth.headers.*` - Response headers (format: `Header-Name: value`)
 - `com.chameth.proxytag` - Optional tag for filtering containers
 
