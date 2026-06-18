@@ -14,6 +14,7 @@ const (
 	labelHeaders  = "com.chameth.headers"
 	labelProvider = "com.chameth.provider"
 	labelProxy    = "com.chameth.proxy"
+	labelSubject  = "com.chameth.subject"
 	labelVhost    = "com.chameth.vhost"
 )
 
@@ -24,6 +25,7 @@ type RouteInfo struct {
 	Upstreams    []Upstream
 	Headers      map[string]string
 	Provider     string
+	Subject      string
 }
 
 // Upstream represents a backend server
@@ -132,6 +134,7 @@ func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 				Alternatives: alternatives,
 				Headers:      make(map[string]string),
 				Provider:     container.Labels[labelProvider],
+				Subject:      container.Labels[labelSubject],
 			}
 			routes[primary] = route
 		} else {
@@ -154,6 +157,17 @@ func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 					"route", primary,
 					"container1_provider", route.Provider,
 					"container2_provider", container.Labels[labelProvider],
+				)
+			}
+
+			if route.Subject != container.Labels[labelSubject] {
+				slog.Warn(
+					"Multiple containers declare the same route with different subjects",
+					"container1_name", route.Upstreams[0].Name,
+					"container2_name", container.Name,
+					"route", primary,
+					"container1_subject", route.Subject,
+					"container2_subject", container.Labels[labelSubject],
 				)
 			}
 		}

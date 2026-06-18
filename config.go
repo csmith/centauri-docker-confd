@@ -37,6 +37,12 @@ func GenerateConfig(containers []containuum.Container, routeExtras string) strin
 			sb.WriteString("\n")
 		}
 
+		if route.Subject != "" {
+			sb.WriteString("    subject ")
+			sb.WriteString(route.Subject)
+			sb.WriteString("\n")
+		}
+
 		for _, upstream := range route.Upstreams {
 			sb.WriteString("    upstream ")
 			sb.WriteString(upstream.Name)

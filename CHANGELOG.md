@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.0 - 2026-06-18
+
+- The `com.chameth.subject` label can now be used to specify the certificate
+  subject name for a particular route.
+
 ## 1.3.0 - 2026-06-16
 
 - The `com.chameth.provider` label can now be used to specify the certificate

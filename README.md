@@ -13,9 +13,10 @@ route configuration, serving it via the network config protocol.
 centauri-docker-confd uses the following labels:
 
 - `com.chameth.vhost` - Comma/space-delimited list of hostnames (required)
-- `com.chameth.proxy` - Port number (auto-detected from single exposed port if omitted)
-- `com.chameth.provider` - Certificate provider to use (Centauri will use its default if not specified)
-- `com.chameth.headers.*` - Response headers (format: `Header-Name: value`)
+- `com.chameth.proxy` - Optional port number (auto-detected from single exposed port if omitted)
+- `com.chameth.provider` - Optional certificate provider to use (Centauri will use its default if not specified)
+- `com.chameth.subject` - Optional custom certificate subject name to use
+- `com.chameth.headers.*` - Optional response headers (format: `Header-Name: value`)
 - `com.chameth.proxytag` - Optional tag for filtering containers
 
 ## Configuration
@@ -54,6 +55,7 @@ services:
     labels:
       com.chameth.vhost: "example.com www.example.com"
       com.chameth.proxy: "80"
+      com.chameth.subject: "example.com *.example.com"
       com.chameth.headers.csp: "Content-Security-Policy: default-src 'self'"
 ```
 
@@ -62,6 +64,7 @@ This generates a Centauri config like:
 ```
 route example.com www.example.com
     upstream web:80
+    subject example.com *.example.com
     header replace Content-Security-Policy default-src 'self'
 ```
 
