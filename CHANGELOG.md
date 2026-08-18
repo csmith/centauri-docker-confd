@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.5.0 - 2026-08-18 
 
 - The `com.chameth.errors.<status>` label can now be used to map an error status
   code to an upstream that should generate the response for it (emitted as an
