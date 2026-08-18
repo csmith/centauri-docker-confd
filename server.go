@@ -15,6 +15,7 @@ const (
 // Server represents a TCP server that broadcasts config to connected clients
 type Server struct {
 	addr       string
+	listener   net.Listener
 	mu         sync.RWMutex
 	clients    map[net.Conn]struct{}
 	lastConfig []byte
@@ -35,7 +36,11 @@ func (s *Server) Start() error {
 		return err
 	}
 
-	slog.Info("Server listening", "addr", s.addr)
+	s.mu.Lock()
+	s.listener = listener
+	s.mu.Unlock()
+
+	slog.Info("Server listening", "addr", listener.Addr())
 
 	go func() {
 		for {
@@ -80,6 +85,18 @@ func (s *Server) Start() error {
 	}()
 
 	return nil
+}
+
+// Addr returns the address the server is listening on, or nil if it has not been started. This is
+// primarily useful when listening on an ephemeral port (e.g. ":0").
+func (s *Server) Addr() net.Addr {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.listener == nil {
+		return nil
+	}
+	return s.listener.Addr()
 }
 
 // Broadcast sends the config to all connected clients using the Centauri wire protocol

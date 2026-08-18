@@ -15,6 +15,7 @@ const (
 	labelHeaders  = "com.chameth.headers"
 	labelProvider = "com.chameth.provider"
 	labelProxy    = "com.chameth.proxy"
+	labelProxytag = "com.chameth.proxytag"
 	labelSubject  = "com.chameth.subject"
 	labelVhost    = "com.chameth.vhost"
 )
