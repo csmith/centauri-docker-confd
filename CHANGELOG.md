@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- The `com.chameth.errors.<status>` label can now be used to map an error status
+  code to an upstream that should generate the response for it (emitted as an
+  `on_error` directive).
+
 ## 1.4.0 - 2026-06-18
 
 - The `com.chameth.subject` label can now be used to specify the certificate

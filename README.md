@@ -17,6 +17,7 @@ centauri-docker-confd uses the following labels:
 - `com.chameth.provider` - Optional certificate provider to use (Centauri will use its default if not specified)
 - `com.chameth.subject` - Optional custom certificate subject name to use
 - `com.chameth.headers.*` - Optional response headers (format: `Header-Name: value`)
+- `com.chameth.errors.<status>` - Optional upstream to generate the response for an error status code (format: `host:port` or `host:port/path`)
 - `com.chameth.proxytag` - Optional tag for filtering containers
 
 ## Configuration
@@ -57,6 +58,7 @@ services:
       com.chameth.proxy: "80"
       com.chameth.subject: "example.com *.example.com"
       com.chameth.headers.csp: "Content-Security-Policy: default-src 'self'"
+      com.chameth.errors.502: "error-pages:8080/502.html"
 ```
 
 This generates a Centauri config like:
@@ -65,6 +67,7 @@ This generates a Centauri config like:
 route example.com www.example.com
     upstream web:80
     subject example.com *.example.com
+    on_error 502 error-pages:8080/502.html
     header replace Content-Security-Policy default-src 'self'
 ```
 

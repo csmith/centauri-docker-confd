@@ -51,6 +51,22 @@ func GenerateConfig(containers []containuum.Container, routeExtras string) strin
 			sb.WriteString("\n")
 		}
 
+		if len(route.Errors) > 0 {
+			statuses := make([]int, 0, len(route.Errors))
+			for status := range route.Errors {
+				statuses = append(statuses, status)
+			}
+			sort.Ints(statuses)
+
+			for _, status := range statuses {
+				sb.WriteString("    on_error ")
+				fmt.Fprintf(&sb, "%d", status)
+				sb.WriteString(" ")
+				sb.WriteString(route.Errors[status])
+				sb.WriteString("\n")
+			}
+		}
+
 		if routeExtras != "" {
 			for line := range strings.SplitSeq(routeExtras, "\n") {
 				line = strings.TrimSpace(line)

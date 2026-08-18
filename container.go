@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	labelErrors   = "com.chameth.errors"
 	labelHeaders  = "com.chameth.headers"
 	labelProvider = "com.chameth.provider"
 	labelProxy    = "com.chameth.proxy"
@@ -24,6 +25,7 @@ type RouteInfo struct {
 	Alternatives []string
 	Upstreams    []Upstream
 	Headers      map[string]string
+	Errors       map[int]string
 	Provider     string
 	Subject      string
 }
@@ -104,6 +106,36 @@ func parseHeaders(container containuum.Container) map[string]string {
 	return headers
 }
 
+// parseErrors collects all com.chameth.errors.<status> labels, mapping an HTTP status code to the
+// upstream that should generate the response for it (format: host:port or host:port/path).
+func parseErrors(container containuum.Container) map[int]string {
+	errors := make(map[int]string)
+	prefix := labelErrors + "."
+
+	for key, value := range container.Labels {
+		if !strings.HasPrefix(key, prefix) {
+			continue
+		}
+
+		statusStr := strings.TrimPrefix(key, prefix)
+		status, err := strconv.Atoi(statusStr)
+		if err != nil || status < 400 || status > 599 {
+			slog.Warn("Invalid error status code in label", "container", container.Name, "label", key)
+			continue
+		}
+
+		target := strings.TrimSpace(value)
+		if target == "" {
+			slog.Warn("Empty error upstream in label", "container", container.Name, "label", key)
+			continue
+		}
+
+		errors[status] = target
+	}
+
+	return errors
+}
+
 // groupByHostname groups containers by their primary hostname
 func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 	routes := make(map[string]*RouteInfo)
@@ -133,6 +165,7 @@ func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 				Primary:      primary,
 				Alternatives: alternatives,
 				Headers:      make(map[string]string),
+				Errors:       make(map[int]string),
 				Provider:     container.Labels[labelProvider],
 				Subject:      container.Labels[labelSubject],
 			}
@@ -178,6 +211,7 @@ func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 		})
 
 		maps.Copy(route.Headers, parseHeaders(container))
+		maps.Copy(route.Errors, parseErrors(container))
 	}
 
 	return routes
