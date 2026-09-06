@@ -200,6 +200,120 @@ func TestGenerateConfig(t *testing.T) {
 				"    header delete Server\n\n",
 		},
 		{
+			name: "splithosts emits one full route per vhost",
+			containers: []containuum.Container{
+				{
+					Name: "web",
+					Labels: map[string]string{
+						labelVhost:            "example.com, www.example.com",
+						labelProxy:            "80",
+						labelSplitHosts:       "true",
+						labelHeaders + ".sts": "Strict-Transport-Security: max-age=15768000",
+					},
+				},
+			},
+			want: "route example.com\n" +
+				"    upstream web:80\n" +
+				"    header replace Strict-Transport-Security max-age=15768000\n\n" +
+				"route www.example.com\n" +
+				"    upstream web:80\n" +
+				"    header replace Strict-Transport-Security max-age=15768000\n\n",
+		},
+		{
+			name: "splithosts set to a false value does not split",
+			containers: []containuum.Container{
+				{
+					Name: "web",
+					Labels: map[string]string{
+						labelVhost:      "example.com, www.example.com",
+						labelProxy:      "80",
+						labelSplitHosts: "false",
+					},
+				},
+			},
+			want: "route example.com www.example.com\n" +
+				"    upstream web:80\n\n",
+		},
+		{
+			name: "splithosts accepts shorthand values like 1",
+			containers: []containuum.Container{
+				{
+					Name: "web",
+					Labels: map[string]string{
+						labelVhost:      "example.com, www.example.com",
+						labelProxy:      "80",
+						labelSplitHosts: "1",
+					},
+				},
+			},
+			want: "route example.com\n" +
+				"    upstream web:80\n\n" +
+				"route www.example.com\n" +
+				"    upstream web:80\n\n",
+		},
+		{
+			name: "splithosts with a duplicate hostname emits the route once",
+			containers: []containuum.Container{
+				{
+					Name: "web",
+					Labels: map[string]string{
+						labelVhost:      "example.com, example.com",
+						labelProxy:      "80",
+						labelSplitHosts: "true",
+					},
+				},
+			},
+			want: "route example.com\n" +
+				"    upstream web:80\n\n",
+		},
+		{
+			name: "unparsable splithosts value is ignored and does not split",
+			containers: []containuum.Container{
+				{
+					Name: "web",
+					Labels: map[string]string{
+						labelVhost:      "example.com, www.example.com",
+						labelProxy:      "80",
+						labelSplitHosts: "yes",
+					},
+				},
+			},
+			want: "route example.com www.example.com\n" +
+				"    upstream web:80\n\n",
+		},
+		{
+			name: "splithosts mismatch between containers warns and keeps the first",
+			containers: []containuum.Container{
+				{Name: "web1", Labels: map[string]string{labelVhost: "example.com, www.example.com", labelProxy: "80"}},
+				{
+					Name: "web2",
+					Labels: map[string]string{
+						labelVhost:      "example.com, www.example.com",
+						labelProxy:      "80",
+						labelSplitHosts: "true",
+					},
+				},
+			},
+			want: "route example.com www.example.com\n" +
+				"    upstream web1:80\n" +
+				"    upstream web2:80\n\n",
+		},
+		{
+			name: "splithosts combined with subject is an error and produces no routes",
+			containers: []containuum.Container{
+				{
+					Name: "web",
+					Labels: map[string]string{
+						labelVhost:      "example.com, www.example.com",
+						labelProxy:      "80",
+						labelSplitHosts: "true",
+						labelSubject:    "example.com",
+					},
+				},
+			},
+			want: "",
+		},
+		{
 			name: "multiple containers on same vhost become multiple upstreams",
 			containers: []containuum.Container{
 				{Name: "web1", Labels: map[string]string{labelVhost: "example.com", labelProxy: "80"}},

@@ -19,6 +19,7 @@ centauri-docker-confd uses the following labels:
 - `com.chameth.headers.*` - Optional response headers (format: `Header-Name: value`)
 - `com.chameth.errors.<status>` - Optional upstream to generate the response for an error status code (format: `host:port` or `host:port/path`)
 - `com.chameth.proxytag` - Optional tag for filtering containers
+- `com.chameth.splithosts` - If set to a true value (`true`/`1`), one route is emitted per vhost instead of a single route with alternate names. Cannot be combined with `com.chameth.subject`.
 
 ## Configuration
 

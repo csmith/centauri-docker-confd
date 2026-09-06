@@ -11,13 +11,14 @@ import (
 )
 
 const (
-	labelErrors   = "com.chameth.errors"
-	labelHeaders  = "com.chameth.headers"
-	labelProvider = "com.chameth.provider"
-	labelProxy    = "com.chameth.proxy"
-	labelProxytag = "com.chameth.proxytag"
-	labelSubject  = "com.chameth.subject"
-	labelVhost    = "com.chameth.vhost"
+	labelErrors     = "com.chameth.errors"
+	labelHeaders    = "com.chameth.headers"
+	labelProvider   = "com.chameth.provider"
+	labelProxy      = "com.chameth.proxy"
+	labelProxytag   = "com.chameth.proxytag"
+	labelSplitHosts = "com.chameth.splithosts"
+	labelSubject    = "com.chameth.subject"
+	labelVhost      = "com.chameth.vhost"
 )
 
 // RouteInfo represents the routing configuration for a hostname
@@ -29,6 +30,7 @@ type RouteInfo struct {
 	Errors       map[int]string
 	Provider     string
 	Subject      string
+	SplitHosts   bool
 }
 
 // Upstream represents a backend server
@@ -137,6 +139,16 @@ func parseErrors(container containuum.Container) map[int]string {
 	return errors
 }
 
+// labelTruthy parses a boolean label value, warning and returning false for unparsable values
+func labelTruthy(container containuum.Container, label, value string) bool {
+	parsed, err := strconv.ParseBool(strings.TrimSpace(value))
+	if err != nil {
+		slog.Warn("Invalid boolean label value, ignoring", "container", container.Name, "label", label, "value", value)
+		return false
+	}
+	return parsed
+}
+
 // groupByHostname groups containers by their primary hostname
 func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 	routes := make(map[string]*RouteInfo)
@@ -154,6 +166,15 @@ func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 			continue
 		}
 
+		splitHosts := false
+		if raw, ok := container.Labels[labelSplitHosts]; ok {
+			splitHosts = labelTruthy(container, labelSplitHosts, raw)
+			if splitHosts && container.Labels[labelSubject] != "" {
+				slog.Error("Container declares both splithosts and subject labels, not generating routes", "container", container.Name)
+				continue
+			}
+		}
+
 		primary, alternatives := parseVhosts(vhost)
 		if primary == "" {
 			slog.Debug("Not proxying container: no valid vhost", "container", container.Name, "vhost", vhost)
@@ -169,6 +190,7 @@ func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 				Errors:       make(map[int]string),
 				Provider:     container.Labels[labelProvider],
 				Subject:      container.Labels[labelSubject],
+				SplitHosts:   splitHosts,
 			}
 			routes[primary] = route
 		} else {
@@ -202,6 +224,17 @@ func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 					"route", primary,
 					"container1_subject", route.Subject,
 					"container2_subject", container.Labels[labelSubject],
+				)
+			}
+
+			if route.SplitHosts != splitHosts {
+				slog.Warn(
+					"Multiple containers declare the same route with different splithosts settings",
+					"container1_name", route.Upstreams[0].Name,
+					"container2_name", container.Name,
+					"route", primary,
+					"container1_splithosts", route.SplitHosts,
+					"container2_splithosts", splitHosts,
 				)
 			}
 		}

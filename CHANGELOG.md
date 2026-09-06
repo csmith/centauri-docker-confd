@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0 - 2026-09-06 
+
+- The `com.chameth.splithosts` label can now be used to emit one route per vhost
+  instead of a single route with alternate names (set to a true value such as
+  `true` or `1` to enable). It is an error to combine it with the
+  `com.chameth.subject` label; affected containers are skipped.
+
 ## 1.5.0 - 2026-08-18 
 
 - The `com.chameth.errors.<status>` label can now be used to map an error status
