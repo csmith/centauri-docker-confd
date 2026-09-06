@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/csmith/containuum"
+	"github.com/csmith/containuum/v2"
 	"github.com/stretchr/testify/assert"
 )
 

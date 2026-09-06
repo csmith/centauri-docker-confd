@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.1 - 2026-09-06
+
+- Fix exposed, unpublished ports not being detected and used if there's no
+  explicit `com.chameth.proxy` label. Thanks @Tsumaru720 for the report.
+
 ## 1.6.0 - 2026-09-06 
 
 - The `com.chameth.splithosts` label can now be used to emit one route per vhost

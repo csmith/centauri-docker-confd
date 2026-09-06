@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/csmith/containuum"
+	"github.com/csmith/containuum/v2"
 	"github.com/csmith/envflag/v2"
 	"github.com/csmith/slogflags"
 )

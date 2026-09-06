@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/csmith/containuum"
+	"github.com/csmith/containuum/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
