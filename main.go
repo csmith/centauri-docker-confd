@@ -15,7 +15,7 @@ import (
 var (
 	listen      = flag.String("listen", ":8080", "TCP address to listen on")
 	routeExtras = flag.String("route-extras", "", "Lines to include in every route block")
-	proxytag    = flag.String("proxytag", "", "Only process containers with matching com.chameth.proxytag label")
+	proxytag    = flag.String("proxytag", "*", "Only process containers whose com.chameth.proxytag label matches: * ignores the label, an empty value selects containers with a missing or empty label, anything else must match exactly")
 )
 
 func main() {
@@ -31,8 +31,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if *proxytag != "" {
-		slog.Info("Filtering containers by label", "label", "com.chameth.proxytag", "value", *proxytag)
+	if *proxytag != "*" {
+		slog.Info("Filtering containers by label", "label", labelProxytag, "value", *proxytag)
 	}
 
 	slog.Info("Starting container monitoring")
@@ -50,10 +50,11 @@ func main() {
 }
 
 // containerFilter builds the filter that selects which containers to proxy. Containers must declare a
-// vhost label, and if a proxytag is configured they must also carry a matching com.chameth.proxytag.
+// vhost label. A proxytag of "*" ignores the com.chameth.proxytag label entirely, an empty proxytag
+// selects containers with a missing or empty label, and any other value must match the label exactly.
 func containerFilter(proxytag string) containuum.Filter {
 	filter := containuum.LabelExists(labelVhost)
-	if proxytag != "" {
+	if proxytag != "*" {
 		filter = containuum.All(
 			containuum.LabelEquals(labelProxytag, proxytag),
 			filter,

@@ -2,12 +2,15 @@ package main
 
 import (
 	"encoding/binary"
+	"flag"
 	"io"
 	"net"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/csmith/containuum/v2"
+	"github.com/csmith/envflag/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -75,7 +78,7 @@ func TestEndToEnd(t *testing.T) {
 	}
 
 	handler := configHandler(server, "")
-	filter := containerFilter("")
+	filter := containerFilter("*")
 
 	handler(filterContainers(filter, containers))
 
@@ -107,6 +110,146 @@ func TestProxytagFiltering(t *testing.T) {
 	assert.Contains(t, config, "route example.com")
 	assert.NotContains(t, config, "internal.example.com")
 	assert.NotContains(t, config, "untagged.example.com")
+}
+
+// TestContainerFilter verifies the proxytag selection semantics: "*" ignores proxytag labels,
+// an empty value selects containers with a missing or empty label, and any other value requires
+// an exact match. Containers without a vhost label are never selected.
+func TestContainerFilter(t *testing.T) {
+	containers := []containuum.Container{
+		{Name: "tagged-public", Labels: map[string]string{labelVhost: "a.example.com", labelProxytag: "public"}},
+		{Name: "tagged-private", Labels: map[string]string{labelVhost: "b.example.com", labelProxytag: "private"}},
+		{Name: "tagged-empty", Labels: map[string]string{labelVhost: "c.example.com", labelProxytag: ""}},
+		{Name: "untagged", Labels: map[string]string{labelVhost: "d.example.com"}},
+		{Name: "no-vhost", Labels: map[string]string{labelProxytag: "public"}},
+	}
+
+	tests := []struct {
+		name     string
+		proxytag string
+		want     []string
+	}{
+		{
+			name:     "wildcard ignores proxytag labels",
+			proxytag: "*",
+			want:     []string{"tagged-public", "tagged-private", "tagged-empty", "untagged"},
+		},
+		{
+			name:     "empty value selects containers with missing or empty labels",
+			proxytag: "",
+			want:     []string{"tagged-empty", "untagged"},
+		},
+		{
+			name:     "other values require an exact match",
+			proxytag: "public",
+			want:     []string{"tagged-public"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got []string
+			for _, c := range filterContainers(containerFilter(tt.proxytag), containers) {
+				got = append(got, c.Name)
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// unsetenv unsets an environment variable for the duration of the test, restoring any previous
+// value afterwards. Unlike t.Setenv it removes the variable entirely rather than setting it empty.
+func unsetenv(t *testing.T, name string) {
+	t.Helper()
+
+	original, wasSet := os.LookupEnv(name)
+	require.NoError(t, os.Unsetenv(name))
+	t.Cleanup(func() {
+		if wasSet {
+			require.NoError(t, os.Setenv(name, original))
+		} else {
+			require.NoError(t, os.Unsetenv(name))
+		}
+	})
+}
+
+// TestProxytagParsing verifies the parsing behaviour the proxytag semantics rely on: the default
+// value is used when neither the flag nor the environment variable is given, an explicitly empty
+// environment variable or flag argument yields an empty value (as opposed to the default), and an
+// explicit flag argument takes precedence over the environment variable.
+func TestProxytagParsing(t *testing.T) {
+	tests := []struct {
+		name   string
+		env    string
+		envSet bool
+		args   []string
+		want   string
+	}{
+		{
+			name: "unset flag and environment variable default to wildcard",
+			want: "*",
+		},
+		{
+			name:   "empty environment variable yields empty value",
+			envSet: true,
+			want:   "",
+		},
+		{
+			name: "empty flag argument yields empty value",
+			args: []string{"--proxytag="},
+			want: "",
+		},
+		{
+			name:   "environment variable is used when flag is absent",
+			envSet: true,
+			env:    "public",
+			want:   "public",
+		},
+		{
+			name: "flag argument is used when environment variable is unset",
+			args: []string{"--proxytag=public"},
+			want: "public",
+		},
+		{
+			name:   "flag argument takes precedence over environment variable",
+			envSet: true,
+			env:    "public",
+			args:   []string{"--proxytag=private"},
+			want:   "private",
+		},
+		{
+			name:   "empty flag argument takes precedence over environment variable",
+			envSet: true,
+			env:    "public",
+			args:   []string{"--proxytag="},
+			want:   "",
+		},
+		{
+			name:   "wildcard may be set explicitly",
+			envSet: true,
+			env:    "*",
+			want:   "*",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			unsetenv(t, "PROXYTAG")
+			if tt.envSet {
+				t.Setenv("PROXYTAG", tt.env)
+			}
+
+			fs := flag.NewFlagSet("test", flag.ContinueOnError)
+			proxytag := fs.String("proxytag", flag.Lookup("proxytag").DefValue, "")
+			envflag.Parse(
+				envflag.WithFlagSet(fs),
+				envflag.WithArguments(tt.args),
+				envflag.WithShowInUsage(false),
+			)
+
+			assert.Equal(t, tt.want, *proxytag)
+		})
+	}
 }
 
 // TestLateClientReceivesLastConfig verifies that a client connecting after a broadcast immediately

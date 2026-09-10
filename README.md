@@ -18,7 +18,7 @@ centauri-docker-confd uses the following labels:
 - `com.chameth.subject` - Optional custom certificate subject name to use
 - `com.chameth.headers.*` - Optional response headers (format: `Header-Name: value`)
 - `com.chameth.errors.<status>` - Optional upstream to generate the response for an error status code (format: `host:port` or `host:port/path`)
-- `com.chameth.proxytag` - Optional tag for filtering containers
+- `com.chameth.proxytag` - Optional tag used with the `--proxytag` option to control which containers are proxied
 - `com.chameth.splithosts` - If set to a true value (`true`/`1`), one route is emitted per vhost instead of a single route with alternate names. Cannot be combined with `com.chameth.subject`.
 
 ## Configuration
@@ -29,7 +29,11 @@ Configuration is done via command-line flags or environment variables:
 |------------------|----------------------|---------|--------------------------------------------------------------------|
 | `--listen`       | `LISTEN`             | `:8080` | TCP address to listen on                                           |
 | `--route-extras` | `ROUTE_EXTRAS`       | (empty) | Lines to include in every route block (can contain newlines)       |
-| `--proxytag`     | `PROXYTAG`           | (empty) | Only process containers with matching `com.chameth.proxytag` label |
+| `--proxytag`     | `PROXYTAG`           | `*`     | Only process containers with matching `com.chameth.proxytag` label |
+
+The default proxytag value, `*`, ignores proxytag labels. An explicitly empty value
+(`--proxytag=` or `PROXYTAG=''`) selects only containers with a missing or empty
+`com.chameth.proxytag` label. Any other value requires an exact label match.
 
 ## Example Usage
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.2 - 2026-09-10 
+
+- The `--proxytag` option now defaults to `*`, which ignores `com.chameth.proxytag`
+  labels and proxies all containers with a `com.chameth.vhost` label. This is the
+  same behaviour as the previous empty default. Setting the flag to an explicit
+  empty value now selects only containers with a missing or empty
+  `com.chameth.proxytag` label. Any other value continues to require an exact
+  match.
+
 ## 1.6.1 - 2026-09-06
 
 - Fix exposed, unpublished ports not being detected and used if there's no
