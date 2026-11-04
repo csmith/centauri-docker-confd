@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/csmith/containuum/v2"
+	"github.com/csmith/containuum/v3"
 	"github.com/csmith/envflag/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

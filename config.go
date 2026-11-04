@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/csmith/containuum/v2"
+	"github.com/csmith/containuum/v3"
 )
 
 // GenerateConfig generates a Centauri route configuration from containers

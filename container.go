@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/csmith/containuum/v2"
+	"github.com/csmith/containuum/v3"
 )
 
 const (
