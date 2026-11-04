@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.3 - 2026-11-04
+
+- Replace `github.com/docker/docker` with the `github.com/moby/moby` modules.
+  This removes GO-2026-4883 and GO-2026-4887 from vulnerability scans. The
+  vulnerable code wasn't called, so previous versions weren't affected.
+- Update to Go 1.27.3 and the latest base image.
+
 ## 1.6.2 - 2026-09-10 
 
 - The `--proxytag` option now defaults to `*`, which ignores `com.chameth.proxytag`
