@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.4 - 2026-11-12
+
+- Update to Go 1.27.4
+
 ## 1.6.3 - 2026-11-04
 
 - Replace `github.com/docker/docker` with the `github.com/moby/moby` modules.
