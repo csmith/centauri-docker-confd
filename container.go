@@ -41,9 +41,12 @@ type Upstream struct {
 
 // parseVhosts parses the com.chameth.vhost label into primary and alternative hostnames
 func parseVhosts(vhost string) (primary string, alternatives []string) {
-	parts := strings.FieldsFunc(vhost, func(r rune) bool {
-		return r == ',' || r == ' '
-	})
+	parts := strings.FieldsFunc(
+		vhost,
+		func(r rune) bool {
+			return r == ',' || r == ' '
+		},
+	)
 
 	for i, part := range parts {
 		part = strings.TrimSpace(part)
@@ -84,7 +87,11 @@ func parsePort(container containuum.Container) int {
 		return int(unboundPorts[0].ContainerPort)
 	}
 
-	slog.Debug("Container has no valid port label, and does not declare a single unbound port", "container", container.Name)
+	slog.Debug(
+		"Container has no valid port label, and does not declare a single unbound port",
+		"container",
+		container.Name,
+	)
 	return -1
 }
 
@@ -98,8 +105,7 @@ func parseHeaders(container containuum.Container) map[string]string {
 			parts := strings.SplitN(value, ":", 2)
 			if len(parts) == 2 {
 				headerName := strings.TrimSpace(parts[0])
-				headerValue := strings.TrimSpace(parts[1])
-				headers[headerName] = headerValue
+				headers[headerName] = strings.TrimSpace(parts[1])
 			} else {
 				slog.Warn("Invalid header label, missing ':'", "container", container.Name, "label", key, "value", value)
 			}
@@ -120,8 +126,7 @@ func parseErrors(container containuum.Container) map[int]string {
 			continue
 		}
 
-		statusStr := strings.TrimPrefix(key, prefix)
-		status, err := strconv.Atoi(statusStr)
+		status, err := strconv.Atoi(strings.TrimPrefix(key, prefix))
 		if err != nil || status < 400 || status > 599 {
 			slog.Warn("Invalid error status code in label", "container", container.Name, "label", key)
 			continue
@@ -170,7 +175,11 @@ func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 		if raw, ok := container.Labels[labelSplitHosts]; ok {
 			splitHosts = labelTruthy(container, labelSplitHosts, raw)
 			if splitHosts && container.Labels[labelSubject] != "" {
-				slog.Error("Container declares both splithosts and subject labels, not generating routes", "container", container.Name)
+				slog.Error(
+					"Container declares both splithosts and subject labels, not generating routes",
+					"container",
+					container.Name,
+				)
 				continue
 			}
 		}
@@ -182,7 +191,9 @@ func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 		}
 
 		route, exists := routes[primary]
-		if !exists {
+		if exists {
+			warnRouteConflicts(route, container, alternatives, splitHosts)
+		} else {
 			route = &RouteInfo{
 				Primary:      primary,
 				Alternatives: alternatives,
@@ -193,60 +204,52 @@ func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 				SplitHosts:   splitHosts,
 			}
 			routes[primary] = route
-		} else {
-			if !slices.Equal(route.Alternatives, alternatives) {
-				slog.Warn(
-					"Multiple containers declare the same route with different alternate names",
-					"container1_name", route.Upstreams[0].Name,
-					"container2_name", container.Name,
-					"route", primary,
-					"container1_alts", route.Alternatives,
-					"container2_alts", alternatives,
-				)
-			}
-
-			if route.Provider != container.Labels[labelProvider] {
-				slog.Warn(
-					"Multiple containers declare the same route with different providers",
-					"container1_name", route.Upstreams[0].Name,
-					"container2_name", container.Name,
-					"route", primary,
-					"container1_provider", route.Provider,
-					"container2_provider", container.Labels[labelProvider],
-				)
-			}
-
-			if route.Subject != container.Labels[labelSubject] {
-				slog.Warn(
-					"Multiple containers declare the same route with different subjects",
-					"container1_name", route.Upstreams[0].Name,
-					"container2_name", container.Name,
-					"route", primary,
-					"container1_subject", route.Subject,
-					"container2_subject", container.Labels[labelSubject],
-				)
-			}
-
-			if route.SplitHosts != splitHosts {
-				slog.Warn(
-					"Multiple containers declare the same route with different splithosts settings",
-					"container1_name", route.Upstreams[0].Name,
-					"container2_name", container.Name,
-					"route", primary,
-					"container1_splithosts", route.SplitHosts,
-					"container2_splithosts", splitHosts,
-				)
-			}
 		}
 
-		route.Upstreams = append(route.Upstreams, Upstream{
-			Name: container.Name,
-			Port: port,
-		})
+		route.Upstreams = append(
+			route.Upstreams,
+			Upstream{Name: container.Name, Port: port},
+		)
 
 		maps.Copy(route.Headers, parseHeaders(container))
 		maps.Copy(route.Errors, parseErrors(container))
 	}
 
 	return routes
+}
+
+// warnRouteConflicts warns when a container declares settings for an existing route that differ from
+// those of the container that first declared it.
+func warnRouteConflicts(route *RouteInfo, container containuum.Container, alternatives []string, splitHosts bool) {
+	conflict := func(setting string, existing, declared any) {
+		slog.Warn(
+			"Multiple containers declare the same route with different "+setting,
+			"container1_name",
+			route.Upstreams[0].Name,
+			"container2_name",
+			container.Name,
+			"route",
+			route.Primary,
+			"container1_value",
+			existing,
+			"container2_value",
+			declared,
+		)
+	}
+
+	if !slices.Equal(route.Alternatives, alternatives) {
+		conflict("alternate names", route.Alternatives, alternatives)
+	}
+
+	if route.Provider != container.Labels[labelProvider] {
+		conflict("providers", route.Provider, container.Labels[labelProvider])
+	}
+
+	if route.Subject != container.Labels[labelSubject] {
+		conflict("subjects", route.Subject, container.Labels[labelSubject])
+	}
+
+	if route.SplitHosts != splitHosts {
+		conflict("splithosts settings", route.SplitHosts, splitHosts)
+	}
 }

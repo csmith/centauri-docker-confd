@@ -15,7 +15,12 @@ import (
 var (
 	listen      = flag.String("listen", ":8080", "TCP address to listen on")
 	routeExtras = flag.String("route-extras", "", "Lines to include in every route block")
-	proxytag    = flag.String("proxytag", "*", "Only process containers whose com.chameth.proxytag label matches: * ignores the label, an empty value selects containers with a missing or empty label, anything else must match exactly")
+	proxytag    = flag.String(
+		"proxytag",
+		"*",
+		"Only process containers whose com.chameth.proxytag label matches: * ignores the label, "+
+			"an empty value selects containers with a missing or empty label, anything else must match exactly",
+	)
 )
 
 func main() {

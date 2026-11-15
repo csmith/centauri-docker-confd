@@ -337,9 +337,12 @@ func TestGenerateConfig(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := GenerateConfig(tt.containers, tt.routeExtras)
-			assert.Equal(t, tt.want, got)
-		})
+		t.Run(
+			tt.name,
+			func(t *testing.T) {
+				got := GenerateConfig(tt.containers, tt.routeExtras)
+				assert.Equal(t, tt.want, got)
+			},
+		)
 	}
 }

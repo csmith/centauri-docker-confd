@@ -32,7 +32,7 @@ func startTestServer(t *testing.T) (*Server, string) {
 func dial(t *testing.T, addr string) net.Conn {
 	t.Helper()
 
-	conn, err := net.Dial("tcp", addr)
+	conn, err := (&net.Dialer{}).DialContext(t.Context(), "tcp", addr)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close() })
 	return conn
@@ -52,17 +52,13 @@ func readFrame(t *testing.T, conn net.Conn) string {
 	assert.Equal(t, magic, string(header[:len(magic)]), "unexpected magic bytes")
 	assert.Equal(t, version, binary.BigEndian.Uint32(header[len(magic):len(magic)+4]), "unexpected version")
 
-	length := binary.BigEndian.Uint32(header[len(magic)+4:])
-	payload := make([]byte, length)
+	payload := make([]byte, binary.BigEndian.Uint32(header[len(magic)+4:]))
 	_, err = io.ReadFull(conn, payload)
 	require.NoError(t, err)
 
 	return string(payload)
 }
 
-// TestEndToEnd exercises the whole pipeline without Docker: containers are fed through the same
-// filter and callback that main wires up, and a real TCP client reads the generated config off the
-// wire and asserts it matches what GenerateConfig produces.
 func TestEndToEnd(t *testing.T) {
 	server, addr := startTestServer(t)
 
@@ -89,8 +85,6 @@ func TestEndToEnd(t *testing.T) {
 	assert.NotContains(t, want, "db")
 }
 
-// TestProxytagFiltering verifies that when a proxytag is configured only containers carrying a
-// matching tag make it through to the generated config.
 func TestProxytagFiltering(t *testing.T) {
 	server, addr := startTestServer(t)
 
@@ -100,7 +94,10 @@ func TestProxytagFiltering(t *testing.T) {
 	filter := containerFilter("public")
 	containers := []containuum.Container{
 		{Name: "web", Labels: map[string]string{labelVhost: "example.com", labelProxy: "80", labelProxytag: "public"}},
-		{Name: "internal", Labels: map[string]string{labelVhost: "internal.example.com", labelProxy: "80", labelProxytag: "private"}},
+		{
+			Name:   "internal",
+			Labels: map[string]string{labelVhost: "internal.example.com", labelProxy: "80", labelProxytag: "private"},
+		},
 		{Name: "untagged", Labels: map[string]string{labelVhost: "untagged.example.com", labelProxy: "80"}},
 	}
 
@@ -112,9 +109,6 @@ func TestProxytagFiltering(t *testing.T) {
 	assert.NotContains(t, config, "untagged.example.com")
 }
 
-// TestContainerFilter verifies the proxytag selection semantics: "*" ignores proxytag labels,
-// an empty value selects containers with a missing or empty label, and any other value requires
-// an exact match. Containers without a vhost label are never selected.
 func TestContainerFilter(t *testing.T) {
 	containers := []containuum.Container{
 		{Name: "tagged-public", Labels: map[string]string{labelVhost: "a.example.com", labelProxytag: "public"}},
@@ -147,13 +141,16 @@ func TestContainerFilter(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var got []string
-			for _, c := range filterContainers(containerFilter(tt.proxytag), containers) {
-				got = append(got, c.Name)
-			}
-			assert.Equal(t, tt.want, got)
-		})
+		t.Run(
+			tt.name,
+			func(t *testing.T) {
+				var got []string
+				for _, c := range filterContainers(containerFilter(tt.proxytag), containers) {
+					got = append(got, c.Name)
+				}
+				assert.Equal(t, tt.want, got)
+			},
+		)
 	}
 }
 
@@ -162,21 +159,11 @@ func TestContainerFilter(t *testing.T) {
 func unsetenv(t *testing.T, name string) {
 	t.Helper()
 
-	original, wasSet := os.LookupEnv(name)
+	// t.Setenv records the original value and restores it on cleanup.
+	t.Setenv(name, "")
 	require.NoError(t, os.Unsetenv(name))
-	t.Cleanup(func() {
-		if wasSet {
-			require.NoError(t, os.Setenv(name, original))
-		} else {
-			require.NoError(t, os.Unsetenv(name))
-		}
-	})
 }
 
-// TestProxytagParsing verifies the parsing behaviour the proxytag semantics rely on: the default
-// value is used when neither the flag nor the environment variable is given, an explicitly empty
-// environment variable or flag argument yields an empty value (as opposed to the default), and an
-// explicit flag argument takes precedence over the environment variable.
 func TestProxytagParsing(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -233,27 +220,28 @@ func TestProxytagParsing(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			unsetenv(t, "PROXYTAG")
-			if tt.envSet {
-				t.Setenv("PROXYTAG", tt.env)
-			}
+		t.Run(
+			tt.name,
+			func(t *testing.T) {
+				unsetenv(t, "PROXYTAG")
+				if tt.envSet {
+					t.Setenv("PROXYTAG", tt.env)
+				}
 
-			fs := flag.NewFlagSet("test", flag.ContinueOnError)
-			proxytag := fs.String("proxytag", flag.Lookup("proxytag").DefValue, "")
-			envflag.Parse(
-				envflag.WithFlagSet(fs),
-				envflag.WithArguments(tt.args),
-				envflag.WithShowInUsage(false),
-			)
+				fs := flag.NewFlagSet("test", flag.ContinueOnError)
+				proxytag := fs.String("proxytag", flag.Lookup("proxytag").DefValue, "")
+				envflag.Parse(
+					envflag.WithFlagSet(fs),
+					envflag.WithArguments(tt.args),
+					envflag.WithShowInUsage(false),
+				)
 
-			assert.Equal(t, tt.want, *proxytag)
-		})
+				assert.Equal(t, tt.want, *proxytag)
+			},
+		)
 	}
 }
 
-// TestLateClientReceivesLastConfig verifies that a client connecting after a broadcast immediately
-// receives the most recently broadcast config.
 func TestLateClientReceivesLastConfig(t *testing.T) {
 	server, addr := startTestServer(t)
 
@@ -266,7 +254,6 @@ func TestLateClientReceivesLastConfig(t *testing.T) {
 	assert.Equal(t, GenerateConfig(containers, ""), readFrame(t, conn))
 }
 
-// TestBroadcastReachesAllClients verifies that a broadcast is delivered to every connected client.
 func TestBroadcastReachesAllClients(t *testing.T) {
 	server, addr := startTestServer(t)
 

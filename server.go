@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/binary"
 	"log/slog"
 	"net"
@@ -31,7 +32,7 @@ func NewServer(addr string) *Server {
 
 // Start starts the TCP server
 func (s *Server) Start() error {
-	listener, err := net.Listen("tcp", s.addr)
+	listener, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", s.addr)
 	if err != nil {
 		return err
 	}
