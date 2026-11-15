@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Licence notices in the image are now a single `/notices/CREDITS` file
+
 ## 1.6.4 - 2026-11-12
 
 - Update to Go 1.27.4
