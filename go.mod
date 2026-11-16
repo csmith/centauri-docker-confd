@@ -3,7 +3,7 @@ module github.com/csmith/centauri-docker-confd
 go 1.25.5
 
 require (
-	github.com/csmith/containuum/v3 v3.0.0
+	github.com/csmith/containuum/v3 v3.1.0
 	github.com/csmith/envflag/v2 v2.0.0
 	github.com/csmith/slogflags v1.2.0
 	github.com/stretchr/testify v1.12.1

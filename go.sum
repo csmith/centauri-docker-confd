@@ -8,8 +8,8 @@ github.com/containerd/errdefs v1.0.0 h1:tg5yIfIlQIrxYtu9ajqY42W3lpS19XqdxRQeEwYG
 github.com/containerd/errdefs v1.0.0/go.mod h1:+YBYIdtsnF4Iw6nWZhJcqGSg/dwvV7tyJ/kCkyJ2k+M=
 github.com/containerd/errdefs/pkg v0.3.0 h1:9IKJ06FvyNlexW690DXuQNx2KA2cUJXx151Xdx3ZPPE=
 github.com/containerd/errdefs/pkg v0.3.0/go.mod h1:NJw6s9HwNuRhnjJhM7pylWwMyAkmCQvQ4GpJHEqRLVk=
-github.com/csmith/containuum/v3 v3.0.0 h1:NBuh+h5a24F3vVgQ4eArFI+Boqo0/+0WnVid7bR9PMk=
-github.com/csmith/containuum/v3 v3.0.0/go.mod h1:0+a3J7+p5KA944Mun2EI1jK0MXWtsHft+5mDUsjhts0=
+github.com/csmith/containuum/v3 v3.1.0 h1:gw6Maz/iquMDPey4+uDM2D5wNfyXgdeSuz/6XYS6nmU=
+github.com/csmith/containuum/v3 v3.1.0/go.mod h1:G3L+tjmzJhv1cfIaQ5rDqHKaYSPTGZEoBFTgbTgxmao=
 github.com/csmith/envflag/v2 v2.0.0 h1:jho28W/psEqJ02EdbUHmkmFpbc5HFhog6NzHRbgtIFg=
 github.com/csmith/envflag/v2 v2.0.0/go.mod h1:GNzzXvZ2bC3z6tdoO45mTrs7l4Uht2WfBKaF1KQu0Pk=
 github.com/csmith/slogflags v1.2.0 h1:NhDhmnZGI2qab9acWsXvaRin/YsQJB+JtyANKvIxEzw=
