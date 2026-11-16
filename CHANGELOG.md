@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## 1.6.5 - 2026-11-16
 
-- Licence notices in the image are now a single `/notices/CREDITS` file
+- Update to Containuum v3.1.0, which addresses occasional issues with
+  listing containers when dockerd is under load
 
 ## 1.6.4 - 2026-11-12
 
