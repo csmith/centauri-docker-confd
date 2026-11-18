@@ -8,7 +8,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     mkdir -p /notices; \
     go tool gocredits -skip-missing . > /notices/CREDITS;
 
-FROM ghcr.io/greboid/dockerbase/nonroot:1.20261007.0
+FROM ghcr.io/greboid/dockerbase/nonroot:1.20261020.0
 COPY --from=build /go/bin/centauri-docker-confd /centauri-docker-confd
 COPY --from=build /notices /notices
 ENTRYPOINT ["/centauri-docker-confd"]
