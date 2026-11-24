@@ -107,7 +107,12 @@ func parseHeaders(container containuum.Container) map[string]string {
 				headerName := strings.TrimSpace(parts[0])
 				headers[headerName] = strings.TrimSpace(parts[1])
 			} else {
-				slog.Warn("Invalid header label, missing ':'", "container", container.Name, "label", key, "value", value)
+				slog.Warn(
+					"Invalid header label, missing ':'",
+					"container", container.Name,
+					"label", key,
+					"value", value,
+				)
 			}
 		}
 	}
@@ -161,7 +166,11 @@ func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 	for _, container := range containers {
 		vhost, ok := container.Labels[labelVhost]
 		if !ok || vhost == "" {
-			slog.Debug("Not proxying container: missing or empty vhost label", "container", container.Name, "present", ok)
+			slog.Debug(
+				"Not proxying container: missing or empty vhost label",
+				"container", container.Name,
+				"present", ok,
+			)
 			continue
 		}
 
@@ -206,10 +215,7 @@ func groupByHostname(containers []containuum.Container) map[string]*RouteInfo {
 			routes[primary] = route
 		}
 
-		route.Upstreams = append(
-			route.Upstreams,
-			Upstream{Name: container.Name, Port: port},
-		)
+		route.Upstreams = append(route.Upstreams, Upstream{Name: container.Name, Port: port})
 
 		maps.Copy(route.Headers, parseHeaders(container))
 		maps.Copy(route.Errors, parseErrors(container))

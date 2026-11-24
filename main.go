@@ -25,10 +25,7 @@ var (
 
 func main() {
 	envflag.Parse()
-	_ = slogflags.Logger(
-		slogflags.WithAddSource(true),
-		slogflags.WithSetDefault(true),
-	)
+	_ = slogflags.Logger(slogflags.WithAddSource(true), slogflags.WithSetDefault(true))
 
 	server := NewServer(*listen)
 	if err := server.Start(); err != nil {
@@ -60,10 +57,7 @@ func main() {
 func containerFilter(proxytag string) containuum.Filter {
 	filter := containuum.LabelExists(labelVhost)
 	if proxytag != "*" {
-		filter = containuum.All(
-			containuum.LabelEquals(labelProxytag, proxytag),
-			filter,
-		)
+		filter = containuum.All(containuum.LabelEquals(labelProxytag, proxytag), filter)
 	}
 	return filter
 }

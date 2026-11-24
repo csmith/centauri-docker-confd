@@ -230,11 +230,7 @@ func TestProxytagParsing(t *testing.T) {
 
 				fs := flag.NewFlagSet("test", flag.ContinueOnError)
 				proxytag := fs.String("proxytag", flag.Lookup("proxytag").DefValue, "")
-				envflag.Parse(
-					envflag.WithFlagSet(fs),
-					envflag.WithArguments(tt.args),
-					envflag.WithShowInUsage(false),
-				)
+				envflag.Parse(envflag.WithFlagSet(fs), envflag.WithArguments(tt.args), envflag.WithShowInUsage(false))
 
 				assert.Equal(t, tt.want, *proxytag)
 			},
