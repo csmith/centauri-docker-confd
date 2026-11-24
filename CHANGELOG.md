@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Update OpenTelemetry to 1.47.0, removing GO-2026-6974 from vulnerability scans
+
 ## 1.6.5 - 2026-11-16
 
 - Update to Containuum v3.1.0, which addresses occasional issues with
