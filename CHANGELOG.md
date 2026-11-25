@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.6.6 - 2026-11-25
 
-- Update OpenTelemetry to 1.47.0, removing GO-2026-6974 from vulnerability scans
+- Update dependencies
 
 ## 1.6.5 - 2026-11-16
 
